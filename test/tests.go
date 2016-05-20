@@ -7,12 +7,24 @@ import (
 	"time"
 
 	"github.com/ezeev/go-metrics-wavefront"
+	"github.com/ezeev/go-metrics-wavefront/tags"
 	"github.com/rcrowley/go-metrics"
 )
 
 func main() {
+
+	/*tags.EncodeTags(
+	"mykey",
+	tags.Tag{"tag1", "val1"},
+	tags.Tag{"tag2", "val2"})
+	*/
 	c := metrics.NewCounter()
-	metrics.Register("foo", c)
+	//metrics.Register("foo", c)
+	wavefront.RegisterMetric(
+		"foo", c,
+		tags.Tag{"key1", "val1"},
+		tags.Tag{"key2", "val2"})
+
 	c.Inc(47)
 
 	g := metrics.NewGauge()

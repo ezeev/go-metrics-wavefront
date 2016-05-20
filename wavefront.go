@@ -11,12 +11,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ezeev/go-metrics-wavefront/tags"
 	"github.com/rcrowley/go-metrics"
 )
 
-// GraphiteConfig provides a container with configuration parameters for
-// the Graphite exporter
-type GraphiteConfig struct {
+// A simple wrapper around go-metrics metrics.Register function
+func RegisterMetric(key string, metric interface{}, tags ...tags.Tag) {
+	key = tags.EncodeTags(key, tags)
+	fmt.Println(key)
+	metrics.Register(key, metric)
+}
+
+// WavefrontConfig provides a container with configuration parameters for
+// the Wavefront exporter
+type WavefrontConfig struct {
 	Addr          *net.TCPAddr     // Network address to connect to
 	Registry      metrics.Registry // Registry to be exported
 	FlushInterval time.Duration    // Flush interval
@@ -25,11 +33,11 @@ type GraphiteConfig struct {
 	Percentiles   []float64        // Percentiles to export from timers and histograms
 }
 
-// Graphite is a blocking exporter function which reports metrics in r
-// to a graphite server located at addr, flushing them every d duration
+// Wavefront is a blocking exporter function which reports metrics in r
+// to a wavefront server located at addr, flushing them every d duration
 // and prepending metric names with prefix.
-func Graphite(r metrics.Registry, d time.Duration, prefix string, addr *net.TCPAddr) {
-	GraphiteWithConfig(GraphiteConfig{
+func Wavefront(r metrics.Registry, d time.Duration, prefix string, addr *net.TCPAddr) {
+	WavefrontWithConfig(WavefrontConfig{
 		Addr:          addr,
 		Registry:      r,
 		FlushInterval: d,
@@ -39,24 +47,24 @@ func Graphite(r metrics.Registry, d time.Duration, prefix string, addr *net.TCPA
 	})
 }
 
-// GraphiteWithConfig is a blocking exporter function just like Graphite,
-// but it takes a GraphiteConfig instead.
-func GraphiteWithConfig(c GraphiteConfig) {
+// WavefrontWithConfig is a blocking exporter function just like Wavefront,
+// but it takes a WavefrontConfig instead.
+func WavefrontWithConfig(c WavefrontConfig) {
 	for _ = range time.Tick(c.FlushInterval) {
-		if err := graphite(&c); nil != err {
+		if err := wavefront(&c); nil != err {
 			log.Println(err)
 		}
 	}
 }
 
-// GraphiteOnce performs a single submission to Graphite, returning a
+// WavefrontOnce performs a single submission to Wavefront, returning a
 // non-nil error on failed connections. This can be used in a loop
-// similar to GraphiteWithConfig for custom error handling.
-func GraphiteOnce(c GraphiteConfig) error {
-	return graphite(&c)
+// similar to WavefrontWithConfig for custom error handling.
+func WavefrontOnce(c WavefrontConfig) error {
+	return wavefront(&c)
 }
 
-func graphite(c *GraphiteConfig) error {
+func wavefront(c *WavefrontConfig) error {
 	now := time.Now().Unix()
 	du := float64(c.DurationUnit)
 	conn, err := net.DialTCP("tcp", nil, c.Addr)
