@@ -7,23 +7,17 @@ import (
 	"time"
 
 	"github.com/ezeev/go-metrics-wavefront"
-	"github.com/ezeev/go-metrics-wavefront/tags"
 	"github.com/rcrowley/go-metrics"
 )
 
 func main() {
 
-	/*tags.EncodeTags(
-	"mykey",
-	tags.Tag{"tag1", "val1"},
-	tags.Tag{"tag2", "val2"})
-	*/
 	c := metrics.NewCounter()
-	//metrics.Register("foo", c)
 	wavefront.RegisterMetric(
-		"foo", c,
-		tags.Tag{"key1", "val1"},
-		tags.Tag{"key2", "val2"})
+		"foo", c, map[string]string{
+			"key1": "val1",
+			"key2": "val2",
+		})
 
 	c.Inc(47)
 
@@ -46,7 +40,12 @@ func main() {
 	t.Update(47)
 
 	addr, _ := net.ResolveTCPAddr("tcp", "192.168.99.100:2878")
-	go wavefront.Wavefront(metrics.DefaultRegistry, 1*time.Second, "some.prefix", addr)
+
+	hostTags := map[string]string{
+		"source": "go-metrics-test",
+	}
+	go wavefront.Wavefront(metrics.DefaultRegistry, 1*time.Second, hostTags, "some.prefix", addr)
+
 	go metrics.Log(metrics.DefaultRegistry, 5*time.Second, log.New(os.Stderr, "metrics: ", log.Lmicroseconds))
 
 	for {
